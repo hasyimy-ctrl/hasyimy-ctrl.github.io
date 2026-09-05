@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" manifest="cache.manifest">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PS4 SlopKit Jailbreak</title>
+  <link rel="stylesheet" href="includes/style.css">
+</head>
+<body>
+
+  <div class="container">
+
+    <header class="header">
+      <h1>PS4 <span class="highlight">SlopKit</span> jailbreak</h1>
+      <div class="fw-row">
+        <span class="fw-badge" id="fwDisplay">detecting...</span>
+      </div>
+    </header>
+
+    <div class="image-wrapper">
+      <img src="includes/image.jpg" alt="image" class="image">
+    </div>
+
+    <div class="controls">
+      <form id="kernel-options" class="radio-group">
+        <label class="radio-option">
+          <input type="radio" name="kernel" id="netctrl-exploit" value="netctrl">
+          <span>Netcontrol (11.00-13.00)</span>
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="kernel" id="lapse-exploit" value="lapse" checked>
+          <span>Lapse (11.00-12.02)</span>
+        </label>
+      </form>
+
+      <button id="jeilbrek" class="btn-primary" type="button">Jelbrek</button>
+
+      <div class="auto-jb">
+        <label id="autoJbLabel">Auto Jailbreak</label>
+        <input id="autoJbInput" type="checkbox" checked>
+      </div>
+    </div>
+
+    <div id="console" class="console">[System] Ready</div>
+
+    <div class="status-bar">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">Idle</span>
+    </div>
+
+    <div class="credits">Special thanks to Jordy, egycnq, TheFlow, abc and PS5 R&amp;D group</div>
+    <div class="credits">Host created by Syimy</div>
+
+  </div>
+
+  <script src="src/main.js?v=4"></script>
+  <script src="includes/script.js?v=4"></script>
+
+</body>
+</html>

@@ -1,0 +1,26 @@
+CACHE MANIFEST
+# v24
+
+CACHE:
+index.html
+includes/style.css
+includes/script.js
+includes/image.jpg
+src/core.js
+src/mem.js
+src/int64.js
+src/offsets.js
+src/main.js
+src/lapse.js
+src/netctrl.js
+src/worker.js
+src/kpatch/1100.bin
+src/kpatch/1102.bin
+src/kpatch/1150.bin
+src/kpatch/1200.bin
+src/kpatch/1250.bin
+src/kpatch/1300.bin
+src/payload.bin
+
+NETWORK:
+*
