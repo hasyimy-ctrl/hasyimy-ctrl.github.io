@@ -289,22 +289,25 @@ html.big-console .image-wrapper,
   color: #b0c4d8;
 }
 
-.radio-option.lapse-disabled {
-  cursor: not-allowed;
-}
+/*
+"Blocked" look for a radio the current firmware cannot run.
 
-.radio-option.lapse-disabled input[type="radio"] {
-  background: #a6444d;
-  cursor: not-allowed;
-}
-
+RED, but still CLICKABLE, and the cursor says so. These used to be real
+`disabled` inputs, which meant a click did nothing at all -- no event, no
+message, just a dead option. The chain gating now lives in script.js's
+radioBlocked() and refuses AND explains, so a `not-allowed` cursor here would
+be a lie: the option is clickable, it just will not be selected. `help` is the
+honest signal -- the option is there to be asked about.
+*/
+.radio-option.lapse-disabled,
 .radio-option.firmware-unsupported {
-  cursor: not-allowed;
+  cursor: help;
 }
 
+.radio-option.lapse-disabled input[type="radio"],
 .radio-option.firmware-unsupported input[type="radio"] {
   background: #a6444d;
-  cursor: not-allowed;
+  cursor: help;
 }
 
 .radio-option input[type="radio"] {

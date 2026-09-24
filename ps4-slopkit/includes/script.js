@@ -6,6 +6,7 @@ const label = document.getElementById('autoJbLabel');
 const kexForm = document.getElementById('kernel-options');
 const netctrlRadio = document.getElementById('netctrl-exploit');
 const lapseRadio = document.getElementById('lapse-exploit');
+const relapseRadio = document.getElementById('relapse-exploit');
 const payloadPicker = document.getElementById('payload-picker');
 const payloadToggle = document.getElementById('payload-toggle');
 const payloadMenu = document.getElementById('payload-menu');
@@ -251,8 +252,6 @@ window.setupUI = function() {
 
     if (legacyMode && consoleEl) consoleEl.innerHTML = '';
 
-    let forceNetctrl = false;
-    let firmwareSupported = false;
     if (fwDisplay && typeof window.offsetsFor === 'function') {
         const { key, off } = window.offsetsFor(navigator.userAgent);
         const onPs4 = key !== null;
@@ -262,50 +261,114 @@ window.setupUI = function() {
         const unsupportedFirmware = !off;
         firmwareSupported = !unsupportedFirmware;
         fwDisplay.classList.toggle('bad', !firmwareSupported);
-        forceNetctrl = !unsupportedFirmware
-            && Number.isFinite(firmwareVersion) && firmwareVersion >= 12.50;
-        if (unsupportedFirmware) {
-            [netctrlRadio, lapseRadio].forEach(function(radio) {
-                if (radio) {
-                    radio.disabled = true;
-                    if (radio.parentNode) {
-                        radio.parentNode.classList.add('firmware-unsupported');
-                    }
+
+        /*
+        ============================================================
+        FIRMWARE -> CHAIN ELIGIBILITY
+        ============================================================
+
+        THREE independent chains, each with its OWN kernel bug and its OWN
+        firmware range. They are not variants of one another:
+
+          lapse.js    10.00 - 12.02   vfs_aio2.c  _aio_multi_delete
+                                      (src/kernel_bug/lapse_bug.c) -- a double-free
+                                      won by a suspend/resume race.
+
+          netctrl.js  12.50+          bnet_netcontrol.c  netcontrol
+                                      (src/kernel_bug/netctrl_bug.c) -- a
+                                      netcontrol(SET/CLEAR_QUEUE) double-free.
+
+          relapse.js  13.02, 13.04, 13.50, 13.52
+                                      vfs_aio2.c  _aio_multi_wait
+                                      (src/kernel_bug/sys_aio_multi_wait.c) -- a
+                                      concurrency bug in the waiter list. A DIFFERENT
+                                      bug from lapse's, not a port of it.
+
+        lapseOk / netctrlOk / relapseOk are each a property test on the firmware's
+        own offset block, never a firmware-string allow list, so a newly-measured
+        firmware gains its chain the moment its keys land in src/offset.js.
+
+        NEITHER the marks NOR the ranges disable a radio. A `disabled` input
+        swallows the click outright -- no change event, no handler, no explanation --
+        and the user is left with a dead grey option and no idea why. The radios stay
+        ENABLED; the gate is enforced in radioBlocked() below, which refuses the
+        selection AND says why. An option that refuses and explains beats one that
+        silently does nothing.
+        */
+        let relapseOk = false;
+        let netctrlOk = false;
+        let lapseOk = false;
+        let firmwareSupported = false;
+        if (fwDisplay && typeof window.offsetsFor === 'function') {
+            const { key, off } = window.offsetsFor(navigator.userAgent);
+            const onPs4 = key !== null;
+            fwDisplay.textContent = key || (onPs4 ? 'UNSUPPORTED' : 'NOT PS4');
+            fwDisplay.classList.remove('placeholder-text');
+            const firmwareVersion = key ? Number(key) : NaN;
+            const unsupportedFirmware = !off;
+            firmwareSupported = !unsupportedFirmware;
+            fwDisplay.classList.toggle('bad', !firmwareSupported);
+
+            /* Relapse's kern.file oracle needs the anchor + oid table. */
+            relapseOk = !unsupportedFirmware
+                && off.k_idt_rsvd !== undefined
+                && off.k_oid_kern_file !== undefined
+                && off.k_oid_maxfilesperproc !== undefined;
+            /* Netcontrol is the 12.50+ chain, and it is what carries the range once
+               Relapse is unavailable there. */
+            netctrlOk = !unsupportedFirmware && Number.isFinite(firmwareVersion)
+                && firmwareVersion >= 12.50;
+            /* Lapse is 10.00 - 12.02. ABOVE that its bug is not what the range is
+               built around; BELOW it there is no support at all. */
+            lapseOk = !unsupportedFirmware && Number.isFinite(firmwareVersion)
+                && firmwareVersion >= 10.00 && firmwareVersion <= 12.02;
+
+            if (!off) {
+                jeilbrekBtn.disabled = true;
+                if (!onPs4) {
+                    window.logToUI('FW', 'The user required to be on PS4.');
+                } else {
+                    window.logToUI('FW', 'Cry harder you etawen nga.');
                 }
-            });
-        }
-        if (forceNetctrl) {
-            exploitChain = 'netctrl';
-            localStorage.setItem('exploitChain', exploitChain);
-            if (netctrlRadio) netctrlRadio.checked = true;
-            if (lapseRadio) {
-                lapseRadio.checked = false;
-                lapseRadio.disabled = true;
-                if (lapseRadio.parentNode) {
-                    lapseRadio.parentNode.classList.add('lapse-disabled');
-                }
-            }
-        }
-        if (!off) {
-            jeilbrekBtn.disabled = true;
-            if (!onPs4) {
-                window.logToUI('FW', 'The user required to be on PS4.');
+                window.setStatus('Unsupported', 'error');
             } else {
-                window.logToUI('FW', 'Cry harder you etawen nga.');
+                window.logToUI('FW', 'Detected ' + key);
+                window.setStatus('Ready', 'ok');
             }
-            window.setStatus('Unsupported', 'error');
-        } else {
-            window.logToUI('FW', 'Detected ' + key);
-            window.setStatus('Ready', 'ok');
+
+            if (unsupportedFirmware) {
+                [netctrlRadio, lapseRadio, relapseRadio].forEach(function(radio) {
+                    if (radio && radio.parentNode)
+                        radio.parentNode.classList.add('firmware-unsupported');
+                });
+            } else {
+                /* Red dot wherever the chain cannot run here. */
+                function markBlocked(radio, blocked) {
+                    if (!radio || !radio.parentNode) return;
+                    radio.parentNode.classList.toggle('lapse-disabled', !!blocked);
+                }
+                markBlocked(relapseRadio, !relapseOk);
+                markBlocked(netctrlRadio, !netctrlOk);
+                markBlocked(lapseRadio, !lapseOk);
+
+                /* Default selection: whichever chain this firmware actually runs.
+                   Relapse wins where it exists because it is the only one that can
+                   run above 12.02. */
+                const def = relapseOk ? 'relapse' : (netctrlOk ? 'netctrl'
+                    : (lapseOk ? 'lapse' : null));
+                if (def) {
+                    exploitChain = def;
+                    localStorage.setItem('exploitChain', exploitChain);
+                    if (def === 'relapse' && relapseRadio) relapseRadio.checked = true;
+                    else if (def === 'netctrl' && netctrlRadio) netctrlRadio.checked = true;
+                    else if (lapseRadio) lapseRadio.checked = true;
+                }
+            }
         }
     } else {
-        [netctrlRadio, lapseRadio].forEach(function(radio) {
-            if (radio) {
-                radio.disabled = true;
-                if (radio.parentNode) {
-                    radio.parentNode.classList.add('firmware-unsupported');
-                }
-            }
+        [netctrlRadio, lapseRadio, relapseRadio].forEach(function(radio) {
+            if (radio && radio.parentNode)
+                radio.parentNode.classList.add('firmware-unsupported');
         });
         if (jeilbrekBtn) jeilbrekBtn.disabled = true;
         window.logToUI('FW', 'offsetsFor not available');
@@ -313,32 +376,104 @@ window.setupUI = function() {
         if (fwDisplay) fwDisplay.classList.remove('placeholder-text');
     }
 
+    /*
+    Why a chain cannot be selected right now, or null if it can. ONE source of
+    truth for both handlers, so the refusal and its wording never depend on HOW
+    the user activated the input.
+    */
+    function radioBlocked(chain) {
+        if (!firmwareSupported) return 'No offsets are present for this firmware.';
+        if (chain === 'relapse' && !relapseOk)
+            return 'Relapse required offsets not present on FW 10.00-13.00 yet.';
+        if (chain === 'lapse' && !lapseOk)
+            return 'Lapse supports FW 10.00-12.02 only.';
+        if (chain === 'netctrl' && !netctrlOk)
+            return 'Netcontrol supports FW 12.50 and above only.';
+        return null;
+    }
+
+    /* The chain this firmware should be on, in preference order. */
+    function defaultChain() {
+        if (relapseOk) return 'relapse';
+        if (netctrlOk) return 'netctrl';
+        if (lapseOk) return 'lapse';
+        return null;
+    }
+
+    function enforceSelection() {
+        const def = defaultChain();
+        if (def === 'relapse' && relapseRadio) relapseRadio.checked = true;
+        else if (def === 'netctrl' && netctrlRadio) netctrlRadio.checked = true;
+        else if (lapseRadio) lapseRadio.checked = true;
+        return def || exploitChain;
+    }
+
+    /*
+    Which radio we last explained a refusal for.
+
+    ONE click on a blocked label produces a burst: click on the label, click on
+    the input, click bubbling back to the form, plus a `change` on the input.
+    All of those reach the two handlers below for a single user gesture. A
+    `Date.now()` window does not reliably collapse them (the deliveries land in
+    different milliseconds), so we dedupe on the ELEMENT instead: remember the
+    input we just explained and stay quiet until a gesture touches a DIFFERENT
+    option. That cannot swallow a genuine second click, which always changes
+    the element.
+    */
+    let explainedFor = null;
+
     if (kexForm) {
         kexForm.addEventListener('change', function(e) {
-            if (e.target.name === 'kernel') {
-                if (forceNetctrl && e.target.value === 'lapse') {
-                    if (netctrlRadio) netctrlRadio.checked = true;
-                    return;
+            if (e.target.name !== 'kernel') return;
+            const want = e.target.value;
+            const why = radioBlocked(want);
+            if (why) {
+                if (e.target !== explainedFor) {
+                    explainedFor = e.target;
+                    window.logToUI('FW', why);
                 }
-                localStorage.setItem('exploitChain', e.target.value);
-                exploitChain = e.target.value;
-                window.logToUI('UI', 'Exploit switched to: ' + exploitChain);
+                exploitChain = enforceSelection();
+                localStorage.setItem('exploitChain', exploitChain);
+                return;
             }
+            explainedFor = null;
+            localStorage.setItem('exploitChain', want);
+            exploitChain = want;
+            window.logToUI('UI', 'Exploit switched to: ' + exploitChain);
         });
 
+        /*
+        The pointer path. Only reachable because the radios are left ENABLED
+        (a disabled input never fires this). It exists so clicking the label of
+        an option that is ALREADY checked still explains why it will not take --
+        an already-checked radio fires no `change`, so without this a click on
+        it would be silent.
+        */
         kexForm.addEventListener('click', function(e) {
-            if (!forceNetctrl) return;
             if (!e.target.closest || !e.target.closest('.radio-option')) return;
-            if (!lapseRadio) return;
-            if (!e.target.closest('.radio-option').contains(lapseRadio)) return;
-
-            if (netctrlRadio) netctrlRadio.checked = true;
-            exploitChain = 'netctrl';
-            window.logToUI('FW', 'Firmware 12.50+ requires Netcontrol.');
+            const opt = e.target.closest('.radio-option');
+            const radio = opt.querySelector('input[name="kernel"]');
+            if (!radio) return;
+            const why = radioBlocked(radio.value);
+            if (!why) { explainedFor = null; return; }
+            if (radio !== explainedFor) {
+                explainedFor = radio;
+                window.logToUI('FW', why);
+            }
+            enforceSelection();
         });
     }
-    if (forceNetctrl) exploitChain = 'netctrl';
-    if (exploitChain === 'netctrl' && netctrlRadio) netctrlRadio.checked = true;
+
+    /*
+    Final consistency pass: the STORED preference is advisory. Whatever chain
+    this firmware actually runs wins, using the same preference order the
+    eligibility block above applies. Reusing defaultChain() rather than a
+    second, hand-written ladder is the point -- one place decides, always.
+    */
+    const finalChain = defaultChain();
+    if (finalChain) exploitChain = finalChain;
+    if (exploitChain === 'relapse' && relapseRadio) relapseRadio.checked = true;
+    else if (exploitChain === 'netctrl' && netctrlRadio) netctrlRadio.checked = true;
     else if (lapseRadio) lapseRadio.checked = true;
 
     if (payloadName !== 'goldhen.bin' && payloadName !== 'hen.bin'
@@ -410,7 +545,7 @@ window.setupUI = function() {
                 /* Custom is always offered, but it is only usable once the
                    user actually drops payload.bin in. Refuse the selection
                    and tell them exactly what to do. */
-                window.logToUI('UI', 'Need a added custom payload.bin at '
+                window.logToUI('UI', 'Need to add a custom payload.bin at '
                     + 'src/payload.bin and update the cache.manifest');
                 setPayloadMenuOpen(false);
                 return;
