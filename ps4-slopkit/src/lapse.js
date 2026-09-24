@@ -139,7 +139,7 @@ const RTP_LOOKUP = 0, RTP_SET = 1;
 /* ---- misc ---------------------------------------------------------- */
 const R2_ON = params.get("r2") !== "0";
 
-/* lapse's own core, from lapse-vue.js (`var MAIN_CORE = 4`). NOT
+/* lapse's own core. NOT
    COMMON.MAIN_CORE -- netctrl pins to 7 and both chains share that
    constant, but the AIO race's pin must match the reference: the spawned
    thr_new thread and the main thread must land on the SAME core for the
