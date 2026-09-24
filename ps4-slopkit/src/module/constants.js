@@ -77,3 +77,47 @@ export const NETCTRL = {
     MSGHDR_SIZE: 0x30,
     NUM_MSG_IOV: 0x17,
 };
+
+/* RELAPSE_SYS -- the syscall set relapse.js drives.
+ *
+ * relapse is the `_aio_multi_wait` chain (src/kernel_bug/sys_aio_multi_wait.c),
+ * NOT the `_aio_multi_delete` chain lapse.js owns. But that is a statement about
+ * the BUG, not about which syscalls the chain issues -- relapse's own transcribed
+ * body really does call aio_multi_delete, in two places:
+ *
+ *   PR-REAPLEAK   cancel + poll + delete, retiring the leak batch
+ *   reapNow()     cancel + poll + delete, retiring a pass's batch
+ *
+ * Those are batch-retirement calls on the SAME ids relapse submitted. They are
+ * NOT lapse's double-free -- lapse's bug IS _aio_multi_delete's own internal
+ * queue_ent[] handling, reached by racing a thread parked inside it. Issuing the
+ * syscall is not the same as being that bug, and this table only lists what gets
+ * called. Do not "clean" 662 out of here on the strength of the bug names; the
+ * chain needs it.
+ *
+ * discoverStubs() reports any missing entry by name rather than letting the
+ * chain fault on a null stub.
+ */
+export const RELAPSE_SYS = {
+    getpid: 20, getuid: 24, geteuid: 25, close: 6,
+    socket: 97, socketpair: 135, setsockopt: 105, getsockopt: 118,
+    sysctl: 202,
+    mmap: 477, munmap: 73, thr_self: 432, getgroups: 79, getgid: 47,
+    cpuset_getaffinity: 487, cpuset_setaffinity: 488,
+    aio_multi_delete: 662, aio_multi_wait: 663, aio_multi_poll: 664,
+    aio_multi_cancel: 666, aio_submit_cmd: 669,
+    getegid: 43, kill: 37, getppid: 39,
+};
+
+/* Constants relapse shares with netctrl's netcontrol/ucred work. Only the ones
+ * relapse reads are listed; UCRED_SIZE is the rthdr spray length lapse/netctrl
+ * both build, and relapse uses the same 0x48 IP6_RTHDR0 header. */
+export const RELAPSE = {
+    AF_UNIX: 1,
+    SOCK_STREAM: 1,
+    IP6_RTHDR0_SIZE: 8,
+    IN6_ADDR_SIZE: 0x10,
+    UCRED_SIZE: 0x168,
+    CPU_LEVEL_WHICH: 3,
+    CPU_WHICH_TID: 1,
+};
