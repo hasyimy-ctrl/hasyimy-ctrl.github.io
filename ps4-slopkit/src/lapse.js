@@ -65,11 +65,6 @@ const AIO_REQ_SIZE = 0x28;      // sizeof(SceKernelAioRWRequest)
 
 /* ---- AIO command + state words ------------------------------------ */
 const AIO_CMD_READ = 1;
-/* AIO_CMD_WRITE is 2, NOT 1. The reference (lapse-vue.js:35) sets it to 2;
-   the port had it as 1, which is AIO_CMD_READ. Stage 3 forges reqs2 with
-   this word and then hunts for it with verifyReqs2, so a wrong value makes
-   the reqs2/reqs3 leak match the wrong queue entries and stage 4's carrier
-   is never a real aio_entry. */
 const AIO_CMD_WRITE = 2;
 const AIO_CMD_FLAG_MULTI = 0x1000;
 const AIO_CMD_MULTI_READ = 0x1001;      // READ | FLAG_MULTI
