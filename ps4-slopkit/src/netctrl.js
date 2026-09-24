@@ -263,6 +263,41 @@ boundedJoin = async function (tasks, ms, label) {
 };
 
 /*
+===============================================================================
+TRIPLET VALIDITY -- DRIVER SCOPE, not makeKarwHelpers
+===============================================================================
+
+This used to be assigned inside makeKarwHelpers (stage 7), which the
+orchestrator runs AFTER stageTripleFree (stage 5) and stageLeakKqueue
+(stage 6). Both of those call it:
+
+    stageLeakKqueue -> findTriplet -> ... (and the POST-KQUEUE path)
+    stageTripleFree -> fireTracked / refcount-drive
+
+so at call time the binding was still `null` and the run died with
+
+    STEP10-FAILED tripletsUsable is not a function
+
+one line after POST-KQUEUE -- the screenshot's exact shape, with
+kqueue-reclaimed-freed-chunk and kernel-base passing and then everything
+below never running (kv=down, FAILED-STAGE stage=make-karw).
+
+Same class of bug as argGadget, iovAb and boundedJoin before it: anything a
+later stage closes over, or an earlier stage calls, has to live at module
+scope. The body is unchanged -- this is a move, not a rewrite.
+*/
+tripletsUsable = function () {
+    if (!triplets || triplets.length !== 3) return false;
+    for (const fd of triplets) {
+        if (!(fd > 0)) return false;
+        // liveFds is authoritative once the pool has been closed; before
+        // that, fall back to the pool test so nothing changes early on.
+        if (liveFds.size ? !liveFds.has(fd) : ipv6.indexOf(fd) < 0) return false;
+    }
+    return true;
+};
+
+/*
 A yield that cannot itself hang: whichever of a MessageChannel macrotask or a
 short timer arrives FIRST wins. Same shape as rop.js yieldFrame, kept local so
 this file gains no import cycle and does not share the ROP module's counter.
@@ -319,7 +354,7 @@ async function stagePrimitive(options) {
         primitiveFail = "unsupported-firmware";
         return false;
     }
-    mark("FW-STATUS", off.fw_status || "none");
+    mark("FW-STATUS", "kernel_table=present");
     mark("PLAN", "iov_workers=" + NUM_IOV_WORKER + " attempts=" + NUM_ATTEMPT
         + " spray=" + NUM_IOV_SPRAY
         + " mode=" + (STOP_BEFORE_DOUBLE ? "stop-before-double" : "armed"));
@@ -2221,17 +2256,6 @@ the same three fds, verified once at close time and not mixed with freed ones.
 This keeps every existing call site working unchanged -- six of them gate the
 kread/kwrite path on this function.
 */
-tripletsUsable = function () {
-    if (!triplets || triplets.length !== 3) return false;
-    for (const fd of triplets) {
-        if (!(fd > 0)) return false;
-        // liveFds is authoritative once the pool has been closed; before
-        // that, fall back to the pool test so nothing changes early on.
-        if (liveFds.size ? !liveFds.has(fd) : ipv6.indexOf(fd) < 0) return false;
-    }
-    return true;
-};
-
         releaseIov = async function (itasks) {
             for (let k = 0; k < iovWorkers.length; ++k)
                 sc(SYS.write, iovSs[1], scratch, 1);
@@ -3928,8 +3952,10 @@ async function stageTeardown() {
 /*
 MAIN ORCHESTRATOR.
 
-This is the whole chain, named. Each line below is a stage defined above,
-so the observable behaviour -- marks, checks, return values, and failure reasons.
+This is the whole chain, named. Each line below is a stage defined above; the
+order and the gates are exactly the order the old monolithic body ran them in,
+so the observable behaviour -- marks, checks, return values, failure reasons --
+is unchanged. Same shape as lapse-vue.js's lapse():
 
     setup() -> double_free_reqs2() -> leak_kernel_addrs()
     -> double_free_reqs1() -> make_kernel_arw() -> jailbreak
