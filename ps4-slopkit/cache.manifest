@@ -38,9 +38,7 @@ src/kpatch/1350.bin
 src/kpatch/1352.bin
 src/goldhen.bin
 src/hen.bin
-# payload.bin is DELIBERATELY NOT listed. It is optional (the "Custom" option
-# appears only when it is present), and a CACHE: entry that 404s makes the
-# browser reject the ENTIRE manifest -- nothing gets cached at all. It falls
-# under NETWORK: * below, so the page still fetches it when it exists.
+# src/payload.bin
+
 NETWORK:
 *
