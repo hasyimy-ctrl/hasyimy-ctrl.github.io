@@ -3928,10 +3928,8 @@ async function stageTeardown() {
 /*
 MAIN ORCHESTRATOR.
 
-This is the whole chain, named. Each line below is a stage defined above; the
-order and the gates are exactly the order the old monolithic body ran them in,
-so the observable behaviour -- marks, checks, return values, failure reasons --
-is unchanged. Same shape as lapse-vue.js's lapse():
+This is the whole chain, named. Each line below is a stage defined above,
+so the observable behaviour -- marks, checks, return values, and failure reasons.
 
     setup() -> double_free_reqs2() -> leak_kernel_addrs()
     -> double_free_reqs1() -> make_kernel_arw() -> jailbreak
