@@ -252,16 +252,6 @@ window.setupUI = function() {
 
     if (legacyMode && consoleEl) consoleEl.innerHTML = '';
 
-    if (fwDisplay && typeof window.offsetsFor === 'function') {
-        const { key, off } = window.offsetsFor(navigator.userAgent);
-        const onPs4 = key !== null;
-        fwDisplay.textContent = key || (onPs4 ? 'UNSUPPORTED' : 'NOT PS4');
-        fwDisplay.classList.remove('placeholder-text');
-        const firmwareVersion = key ? Number(key) : NaN;
-        const unsupportedFirmware = !off;
-        firmwareSupported = !unsupportedFirmware;
-        fwDisplay.classList.toggle('bad', !firmwareSupported);
-
         /*
         ============================================================
         FIRMWARE -> CHAIN ELIGIBILITY
@@ -299,50 +289,79 @@ window.setupUI = function() {
         let netctrlOk = false;
         let lapseOk = false;
         let firmwareSupported = false;
+        /* Why the firmware is unsupported, when it is -- set below and read by
+           radioBlocked() so a click explains the same thing the badge shows. */
+        let fwUnsupportedReason = '';
+        /*
+        ALL THREE INDICATORS GO RED WHEN NOTHING CAN RUN.
+
+        The badge and the radio dots have to agree with each other and with the
+        status line, or the page contradicts itself: a red UNSUPPORTED badge next
+        to three green radio dots reads as "pick one", when in fact none of them
+        can run. So the two failure cases below both mark every option.
+
+        Note the two cases are NOT the same thing and must not share wording:
+          NOT A PS4          the UA is not a PlayStation at all
+          UNSUPPORTED FW     a PS4, but its firmware is not in the table
+                             (too old, or newer than the highest entry)
+        */
         if (fwDisplay && typeof window.offsetsFor === 'function') {
-            const { key, off } = window.offsetsFor(navigator.userAgent);
-            const onPs4 = key !== null;
+            const r = window.offsetsFor(navigator.userAgent);
+            const key = r.key, off = r.off;
+            /* offsetsForIn reports isPs4 directly; fall back to "the UA has a
+               version in it" for an older publisher that does not set it. */
+            const onPs4 = (r.isPs4 !== undefined) ? r.isPs4 : (key !== null);
             fwDisplay.textContent = key || (onPs4 ? 'UNSUPPORTED' : 'NOT PS4');
             fwDisplay.classList.remove('placeholder-text');
-            const firmwareVersion = key ? Number(key) : NaN;
+            const firmwareVersion = Number.isFinite(r.version)
+                ? r.version : (key ? Number(key) : NaN);
             const unsupportedFirmware = !off;
             firmwareSupported = !unsupportedFirmware;
+            /* RED for anything that cannot run -- both cases. This is the line
+               that makes a green UNSUPPORTED/NOT PS4 impossible. */
             fwDisplay.classList.toggle('bad', !firmwareSupported);
 
-            /* Relapse's kern.file oracle needs the anchor + oid table. */
-            relapseOk = !unsupportedFirmware
-                && off.k_idt_rsvd !== undefined
-                && off.k_oid_kern_file !== undefined
-                && off.k_oid_maxfilesperproc !== undefined;
-            /* Netcontrol is the 12.50+ chain, and it is what carries the range once
-               Relapse is unavailable there. */
-            netctrlOk = !unsupportedFirmware && Number.isFinite(firmwareVersion)
-                && firmwareVersion >= 12.50;
-            /* Lapse is 10.00 - 12.02. ABOVE that its bug is not what the range is
-               built around; BELOW it there is no support at all. */
-            lapseOk = !unsupportedFirmware && Number.isFinite(firmwareVersion)
-                && firmwareVersion >= 10.00 && firmwareVersion <= 12.02;
-
-            if (!off) {
+            if (unsupportedFirmware) {
+                /* Every kernel indicator red, so the form agrees with the badge
+                   and with the disabled Jelbrek button. */
+                [netctrlRadio, lapseRadio, relapseRadio].forEach(function(radio) {
+                    if (radio && radio.parentNode)
+                        radio.parentNode.classList.add('firmware-unsupported');
+                });
                 jeilbrekBtn.disabled = true;
                 if (!onPs4) {
+                    fwUnsupportedReason = 'This page only works on a PS4.';
                     window.logToUI('FW', 'The user required to be on PS4.');
+                } else if (key) {
+                    fwUnsupportedReason = 'Firmware ' + key
+                        + ' is not supported yet (no offsets).';
+                    window.logToUI('FW', fwUnsupportedReason);
                 } else {
+                    fwUnsupportedReason = 'Could not read the firmware version'
+                        + ' from this console.';
                     window.logToUI('FW', 'Cry harder you etawen nga.');
                 }
                 window.setStatus('Unsupported', 'error');
             } else {
                 window.logToUI('FW', 'Detected ' + key);
                 window.setStatus('Ready', 'ok');
-            }
 
-            if (unsupportedFirmware) {
+                /* Relapse's kern.file oracle needs the anchor + oid table. */
+                relapseOk = off.k_idt_rsvd !== undefined
+                    && off.k_oid_kern_file !== undefined
+                    && off.k_oid_maxfilesperproc !== undefined;
+                /* Netcontrol carries 12.50 and above. */
+                netctrlOk = Number.isFinite(firmwareVersion)
+                    && firmwareVersion >= 12.50;
+                /* Lapse is 10.00 - 12.02. */
+                lapseOk = Number.isFinite(firmwareVersion)
+                    && firmwareVersion >= 10.00 && firmwareVersion <= 12.02;
+
+                /* Red dot wherever the chain cannot run here. */
                 [netctrlRadio, lapseRadio, relapseRadio].forEach(function(radio) {
                     if (radio && radio.parentNode)
-                        radio.parentNode.classList.add('firmware-unsupported');
+                        radio.parentNode.classList.remove('firmware-unsupported');
                 });
-            } else {
-                /* Red dot wherever the chain cannot run here. */
                 function markBlocked(radio, blocked) {
                     if (!radio || !radio.parentNode) return;
                     radio.parentNode.classList.toggle('lapse-disabled', !!blocked);
@@ -351,9 +370,7 @@ window.setupUI = function() {
                 markBlocked(netctrlRadio, !netctrlOk);
                 markBlocked(lapseRadio, !lapseOk);
 
-                /* Default selection: whichever chain this firmware actually runs.
-                   Relapse wins where it exists because it is the only one that can
-                   run above 12.02. */
+                /* Default selection: whichever chain this firmware runs. */
                 const def = relapseOk ? 'relapse' : (netctrlOk ? 'netctrl'
                     : (lapseOk ? 'lapse' : null));
                 if (def) {
@@ -364,17 +381,21 @@ window.setupUI = function() {
                     else if (lapseRadio) lapseRadio.checked = true;
                 }
             }
+        } else {
+            [netctrlRadio, lapseRadio, relapseRadio].forEach(function(radio) {
+                if (radio && radio.parentNode)
+                    radio.parentNode.classList.add('firmware-unsupported');
+            });
+            if (jeilbrekBtn) jeilbrekBtn.disabled = true;
+            fwUnsupportedReason = 'Firmware offsets failed to load.';
+            if (fwDisplay) {
+                fwDisplay.textContent = 'ERROR';
+                fwDisplay.classList.remove('placeholder-text');
+                fwDisplay.classList.add('bad');
+            }
+            window.logToUI('FW', 'offsetsFor not available');
+            window.setStatus('Unsupported', 'error');
         }
-    } else {
-        [netctrlRadio, lapseRadio, relapseRadio].forEach(function(radio) {
-            if (radio && radio.parentNode)
-                radio.parentNode.classList.add('firmware-unsupported');
-        });
-        if (jeilbrekBtn) jeilbrekBtn.disabled = true;
-        window.logToUI('FW', 'offsetsFor not available');
-        window.setStatus('Unsupported', 'error');
-        if (fwDisplay) fwDisplay.classList.remove('placeholder-text');
-    }
 
     /*
     Why a chain cannot be selected right now, or null if it can. ONE source of
@@ -382,7 +403,8 @@ window.setupUI = function() {
     the user activated the input.
     */
     function radioBlocked(chain) {
-        if (!firmwareSupported) return 'No offsets are present for this firmware.';
+        if (!firmwareSupported)
+            return fwUnsupportedReason || 'No offsets are present for this firmware.';
         if (chain === 'relapse' && !relapseOk)
             return 'Relapse required offsets not present on FW 10.00-13.00 yet.';
         if (chain === 'lapse' && !lapseOk)
