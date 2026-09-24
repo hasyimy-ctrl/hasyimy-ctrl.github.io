@@ -1,0 +1,921 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: radial-gradient(ellipse at 50% 0%, #1a1a2e 0%, #0a0c10 80%);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  padding: 20px;
+  color: #dce4ed;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  margin-bottom: 20px;
+  gap: 6px;
+}
+
+.header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: #eef4fa;
+  margin: 0;
+}
+
+.header .highlight {
+  color: #6aa8d8;
+}
+
+.fw-row {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.fw-badge {
+  background: rgba(45, 160, 120, 0.12);
+  color: #6fd4a8;
+  padding: 2px 16px;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid rgba(45, 160, 120, 0.1);
+  display: inline-block;
+}
+
+.fw-badge.bad {
+  background: rgba(166, 68, 77, 0.12);
+  color: #d46f6f;
+  border-color: rgba(166, 68, 77, 0.15);
+}
+
+.container {
+  position: relative;
+  width: 900px;
+  max-width: 100%;
+  background: rgba(12, 16, 22, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 28px;
+  padding: 28px 30px 24px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.settings-btn {
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: #8a9aaa;
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease, transform 0.4s ease;
+}
+
+.settings-btn:hover {
+  color: #d4ecff;
+  background: rgba(60, 150, 200, 0.12);
+  transform: rotate(45deg);
+}
+
+.settings-btn[aria-expanded="true"] {
+  color: #6fd4a8;
+  background: rgba(45, 160, 120, 0.12);
+}
+
+.settings-panel {
+  position: absolute;
+  top: 52px;
+  right: 18px;
+  z-index: 20;
+  min-width: 190px;
+  background: rgba(16, 21, 28, 0.98);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  padding: 12px 14px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.7);
+}
+
+.settings-panel[hidden] {
+  display: none;
+}
+
+.settings-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6aa8d8;
+  margin-bottom: 8px;
+}
+
+.settings-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 13px;
+  color: #b0c4d8;
+  cursor: pointer;
+  user-select: none;
+}
+
+.settings-option input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  border: 2px solid #555;
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.settings-option input[type="checkbox"]:checked {
+  border-color: #4ade80;
+  background: #4ade80;
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.15);
+}
+
+.settings-option input[type="checkbox"]:checked::after {
+  content: '';
+  width: 4px;
+  height: 8px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -60%) rotate(45deg);
+}
+
+.image-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+html.big-console .image-wrapper,
+.container.big .image-wrapper {
+  display: none;
+}
+
+.image {
+  max-width: 100%;
+  height: auto;
+  max-height: 200px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  object-fit: contain;
+  background: #0a0c10;
+}
+
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 14px 20px;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 12px 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  margin-bottom: 18px;
+}
+
+.radio-group {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.payload-picker {
+  position: relative;
+  padding-left: 16px;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.payload-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #b0c4d8;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+.payload-toggle:hover { color: #d4ecff; border-color: rgba(60, 180, 220, 0.3); }
+.payload-toggle[aria-expanded="true"] { color: #d4ecff; }
+
+.payload-caret {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid currentColor;
+  transition: transform 0.2s ease;
+}
+.payload-toggle[aria-expanded="true"] .payload-caret { transform: rotate(180deg); }
+
+.payload-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 16px;
+  z-index: 30;
+  min-width: 120px;
+  background: rgba(16, 21, 28, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+}
+.payload-menu[hidden] { display: none; }
+
+.payload-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 5px;
+  padding: 6px 10px;
+  font-size: 14px;
+  color: #b0c4d8;
+  cursor: pointer;
+}
+.payload-item:hover { background: rgba(60, 150, 200, 0.15); color: #eef4fa; }
+.payload-item.selected { color: #6fd4a8; font-weight: 700; }
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #b0c4d8;
+}
+
+.radio-option.lapse-disabled {
+  cursor: not-allowed;
+}
+
+.radio-option.lapse-disabled input[type="radio"] {
+  background: #a6444d;
+  cursor: not-allowed;
+}
+
+.radio-option.firmware-unsupported {
+  cursor: not-allowed;
+}
+
+.radio-option.firmware-unsupported input[type="radio"] {
+  background: #a6444d;
+  cursor: not-allowed;
+}
+
+.radio-option input[type="radio"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border: none;
+  border-radius: 50%;
+  background: #666;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  position: relative;
+  top: 1px;
+}
+
+.radio-option input[type="radio"]:checked {
+  background: #2f9e5b;
+  box-shadow: 0 0 7px rgba(47, 158, 91, 0.18);
+}
+
+.radio-option.firmware-unsupported input[type="radio"]:checked {
+  background: #a6444d;
+  box-shadow: 0 0 7px rgba(166, 68, 77, 0.18);
+}
+
+.radio-option input[type="radio"]:checked::after {
+  display: none;
+}
+
+.btn-primary {
+  background: linear-gradient(145deg, #1a4a6a, #0f2d42);
+  border: none;
+  border-radius: 10px;
+  padding: 8px 28px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #d4ecff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(60, 150, 200, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 20, 40, 0.4);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(145deg, #246a8a, #1a4a6a);
+  transform: translateY(-2px);
+  border-color: rgba(60, 180, 220, 0.3);
+}
+
+.btn-primary:disabled {
+  background: #1a2a3a;
+  color: #4a5a6a;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.auto-jb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #b0c4d8;
+}
+
+#autoJbLabel {
+  cursor: pointer;
+  user-select: none;
+}
+
+.auto-jb input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  border: 2px solid #555;
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
+  top: 0px;
+  transition: all 0.2s ease;
+}
+
+.auto-jb input[type="checkbox"]:checked {
+  border-color: #4ade80;
+  background: #4ade80;
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.15);
+}
+
+.auto-jb input[type="checkbox"]:checked::after {
+  content: '';
+  width: 4px;
+  height: 8px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -60%) rotate(45deg);
+}
+
+.console {
+  background: #06080a;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  padding: 14px 18px;
+  height: 160px;
+  min-height: 160px;
+  max-height: 160px;
+  flex: 0 0 160px;
+  overflow-y: scroll;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #8a9aaa;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin-bottom: 14px;
+  contain: layout paint style;
+}
+
+html.big-console .console,
+.console.big {
+  height: 420px;
+  min-height: 420px;
+  max-height: 420px;
+  flex-basis: 420px;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.console.nowrap {
+  white-space: pre;
+  word-break: normal;
+  overflow-x: auto;
+}
+
+.console::-webkit-scrollbar {
+  width: 5px;
+  background: transparent;
+}
+.console::-webkit-scrollbar-thumb {
+  background: #1a2a3a;
+  border-radius: 10px;
+}
+.console::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 13px;
+  color: #8a9aaa;
+  padding: 4px 6px;
+  flex-wrap: wrap;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #3a4a5a;
+  display: inline-block;
+  transition: background 0.3s;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.status-dot.running {
+  background: #5fd4a0;
+  box-shadow: 0 0 16px rgba(80, 220, 160, 0.3);
+  animation: pulse-dot 1.2s infinite;
+}
+.status-dot.error {
+  background: #d46f6f;
+  box-shadow: 0 0 16px rgba(200, 80, 80, 0.3);
+}
+.status-dot.ok {
+  background: #5fd4a0;
+  box-shadow: 0 0 12px rgba(80, 220, 160, 0.2);
+}
+.status-dot.warn {
+  background: #d4b86f;
+  box-shadow: 0 0 12px rgba(200, 180, 80, 0.2);
+}
+
+@keyframes pulse-dot {
+  0%   { opacity: 0.5; transform: scale(0.9); }
+  50%  { opacity: 1;   transform: scale(1.15); }
+  100% { opacity: 0.5; transform: scale(0.9); }
+}
+
+#statusText {
+  color: #b0c4d8;
+  flex: 1;
+}
+
+.credits {
+  margin-top: 10px;
+  color: #5f9dcc;
+  font-size: 10px;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .container { padding: 16px; }
+  .header h1 { font-size: 20px; }
+  .controls { flex-direction: column; align-items: stretch; }
+  .radio-group { justify-content: center; }
+  .btn-primary { width: 100%; text-align: center; }
+  .auto-jb { justify-content: center; }
+  .image { max-height: 160px; }
+  .console { height: 160px; min-height: 160px; max-height: 160px; flex-basis: 160px; }
+  .console.big { height: 320px; min-height: 320px; max-height: 320px; flex-basis: 320px; }
+  .fw-badge { font-size: 11px; padding: 2px 12px; }
+  .settings-btn { top: 12px; right: 12px; }
+  .settings-panel { top: 46px; right: 12px; }
+}
+
+.console {
+  scrollbar-width: thin;
+  scrollbar-color: #1a2a3a transparent;
+}
+html.legacy,
+html.legacy > body {
+  background: #ffffff;
+  background-image: none;
+}
+html.legacy > body {
+  background: #ffffff;
+  background-image: none;
+  color: #000;
+  font-family: serif;
+  display: block;
+  padding: 8px;
+  align-items: initial;
+  justify-content: initial;
+  min-height: 0;
+}
+
+body.legacy {
+  background: #ffffff;
+  color: #000;
+  font-family: serif;
+  display: block;
+  padding: 8px;
+  align-items: initial;
+  justify-content: initial;
+  min-height: 0;
+}
+
+html.legacy > body .container,
+body.legacy .container {
+  width: auto;
+  max-width: none;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  position: static;
+  text-align: left;
+}
+
+html.legacy > body .header,
+body.legacy .header {
+  display: block;
+  text-align: left;
+  align-items: flex-start;
+  border-bottom: none;
+  padding: 0;
+  margin: 0 0 6px 0;
+  gap: 0;
+}
+html.legacy > body .header h1,
+body.legacy .header h1 {
+  display: none;
+}
+html.legacy > body .fw-row,
+body.legacy .fw-row {
+  display: block;
+  justify-content: flex-start;
+  text-align: left;
+  width: auto;
+}
+
+html.legacy > body .fw-badge,
+body.legacy .fw-badge {
+  background: none;
+  border: none;
+  color: #000;
+  padding: 0;
+  border-radius: 0;
+  font-size: 13px;
+  font-weight: normal;
+}
+
+html.legacy > body .fw-badge:not(.bad)::before,
+body.legacy .fw-badge:not(.bad)::before {
+  content: "Firmware : ";
+}
+
+html.legacy > body .settings-btn,
+body.legacy .settings-btn,
+html.legacy > body .settings-panel,
+body.legacy .settings-panel {
+  display: none !important;
+}
+
+body.legacy .settings-panel {
+  min-width: 0;
+  background: #ffffff;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  color: #000;
+  padding: 0;
+  margin: 4px 0 8px 0;
+  text-align: left;
+}
+body.legacy .settings-title { color: #000; text-transform: none; }
+body.legacy .settings-option { color: #000; }
+body.legacy .settings-option input[type="checkbox"] {
+  -webkit-appearance: checkbox !important;
+  appearance: checkbox !important;
+  width: 13px !important;
+  height: 13px !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  padding: 0 !important;
+}
+body.legacy .settings-option input[type="checkbox"]:checked {
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+body.legacy .settings-option input[type="checkbox"]:checked::after { content: none !important; }
+
+body.legacy .radio-option { color: #000; font-weight: normal; }
+body.legacy .radio-option input[type="radio"] {
+  -webkit-appearance: radio !important;
+  appearance: radio !important;
+  width: 13px !important;
+  height: 13px !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  top: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transition: none !important;
+}
+/* Kill the coloured checked accent from the themed rules -- the base
+   .radio-option input:checked paints the dot green (#2f9e5b) and no plain
+   reset above touches :checked, so it leaked through into legacy theme. */
+body.legacy .radio-option input[type="radio"]:checked,
+body.legacy .radio-option.firmware-unsupported input[type="radio"],
+body.legacy .radio-option.lapse-disabled input[type="radio"],
+body.legacy .radio-option.firmware-unsupported input[type="radio"]:checked {
+  -webkit-appearance: radio !important;
+  appearance: radio !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+}
+body.legacy .radio-option input[type="radio"]:checked::after,
+body.legacy .radio-option.firmware-unsupported input[type="radio"]:checked::after {
+  content: none !important;
+  display: none !important;
+}
+body.legacy .auto-jb input[type="checkbox"] {
+  -webkit-appearance: checkbox !important;
+  appearance: checkbox !important;
+  width: 13px !important;
+  height: 13px !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  margin: 0 0 0 4px !important;
+  padding: 0 !important;
+}
+body.legacy .auto-jb input[type="checkbox"]:checked {
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+body.legacy .auto-jb input[type="checkbox"]:checked::after { content: none !important; }
+body.legacy .auto-jb { color: #000; }
+
+html.legacy > body .controls,
+body.legacy .controls {
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 4px 0;
+  justify-content: flex-start;
+  align-items: center;
+  margin-bottom: 8px;
+}
+body.legacy .radio-group {
+  justify-content: flex-start;
+  gap: 10px;
+}
+body.legacy .payload-picker,
+html.legacy > body .payload-picker {
+  padding-left: 0;
+  border-left: none;
+}
+body.legacy .payload-toggle,
+html.legacy > body .payload-toggle {
+  background: #fff !important;
+  background-image: none !important;
+  border: 1px solid #000 !important;
+  border-radius: 0 !important;
+  color: #000 !important;
+  box-shadow: none !important;
+  font-weight: normal !important;
+  padding: 2px 8px !important;
+}
+body.legacy .payload-toggle:hover,
+body.legacy .payload-toggle[aria-expanded="true"],
+html.legacy > body .payload-toggle:hover,
+html.legacy > body .payload-toggle[aria-expanded="true"] {
+  background: #fff !important;
+  background-image: none !important;
+  color: #000 !important;
+  border-color: #000 !important;
+}
+body.legacy .payload-menu,
+html.legacy > body .payload-menu {
+  background: #fff;
+  border: 1px solid #000;
+  border-radius: 0;
+  box-shadow: none;
+}
+body.legacy .payload-item,
+html.legacy > body .payload-item {
+  color: #000;
+  border-radius: 0;
+}
+body.legacy .payload-item:hover,
+html.legacy > body .payload-item:hover {
+  background: #eee;
+  color: #000;
+}
+body.legacy .payload-item.selected,
+html.legacy > body .payload-item.selected {
+  background: #fff !important;
+  color: #000 !important;
+  font-weight: bold;
+}
+html.legacy > body .btn-primary,
+body.legacy .btn-primary {
+  /* GENERIC NATIVE BUTTON: let the UA paint it. appearance:auto gives the
+     classic grey beveled face, and we only reset the themed custom bits. */
+  -webkit-appearance: button !important;
+  appearance: button !important;
+  background: buttonface !important;
+  background-image: none !important;
+  color: buttontext !important;
+  border: 2px outset buttonface !important;
+  border-radius: 2px !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  font-weight: normal !important;
+  font-family: serif !important;
+  transform: none !important;
+  transition: none !important;
+  padding: 2px 12px !important;
+}
+html.legacy > body .btn-primary:hover:not(:disabled),
+body.legacy .btn-primary:hover:not(:disabled) {
+  background: buttonface !important;
+  background-image: none !important;
+  color: buttontext !important;
+  transform: none !important;
+  border: 2px outset buttonface !important;
+}
+html.legacy > body .btn-primary:active:not(:disabled),
+body.legacy .btn-primary:active:not(:disabled) {
+  background: buttonface !important;
+  background-image: none !important;
+  color: buttontext !important;
+  border: 2px inset buttonface !important;
+}
+html.legacy > body .btn-primary:disabled,
+body.legacy .btn-primary:disabled {
+  background: buttonface !important;
+  background-image: none !important;
+  color: graytext !important;
+  border: 2px outset buttonface !important;
+}
+
+html.legacy > body .console,
+body.legacy .console {
+  background: transparent;
+  color: #000;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  font-family: monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 0;
+  margin: 6px 0 6px 0;
+  contain: layout paint style;
+  white-space: pre;
+  word-break: normal;
+  overflow-x: auto;
+}
+html.legacy > body .console {
+  white-space: pre;
+  word-break: normal;
+  overflow-x: auto;
+}
+html.legacy > body .console div,
+html.legacy > body .console .bad,
+html.legacy > body .console .warn,
+html.legacy > body .console .ok,
+body.legacy .console div,
+body.legacy .console .bad,
+body.legacy .console .warn,
+body.legacy .console .ok {
+  color: #000;
+}
+
+html.legacy > body .status-bar,
+body.legacy .status-bar { display: none; }
+html.legacy > body .credits,
+body.legacy .credits { display: none; }
+
+html.legacy > body .image-wrapper,
+body.legacy .image-wrapper { display: none; }
+
+body.legacy.legacy-running .header,
+body.legacy.legacy-running .settings-btn,
+body.legacy.legacy-running .settings-panel,
+body.legacy.legacy-running .image-wrapper,
+body.legacy.legacy-running .legacy-toggle,
+body.legacy.legacy-running .controls {
+  display: none !important;
+}
+
+body.legacy.legacy-running .container {
+  margin: 0;
+  padding: 0;
+}
+
+body.legacy.legacy-running .console {
+  position: fixed;
+  inset: 0;
+  margin: 0;
+  padding: 4px;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  flex: none;
+  font-size: 13px;
+  line-height: 1.35;
+  overflow-y: auto;
+  white-space: pre;
+  word-break: normal;
+  overflow-x: auto;
+  z-index: 9999;
+}
+
+.legacy-toggle {
+  display: none;              /* regular theme: the gear covers this */
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #000;
+  cursor: pointer;
+  user-select: none;
+  margin: 0 0 8px 0;
+}
+html.legacy > body .legacy-toggle,
+body.legacy .legacy-toggle {
+  display: flex;
+}
+html.legacy > body .legacy-toggle input[type="checkbox"],
+body.legacy .legacy-toggle input[type="checkbox"] {
+  -webkit-appearance: auto;
+  appearance: auto;
+  width: auto;
+  height: auto;
+  border: initial;
+  border-radius: initial;
+  background: initial;
+  box-shadow: none;
+  cursor: pointer;
+}
