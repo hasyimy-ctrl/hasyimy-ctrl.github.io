@@ -12,6 +12,7 @@ src/offset.js
 src/main.js
 src/lapse.js
 src/netctrl.js
+src/relapse.js
 src/check-jailbroken.js
 src/post-exploit.js
 src/module/addr.js
@@ -32,6 +33,9 @@ src/kpatch/1150.bin
 src/kpatch/1200.bin
 src/kpatch/1250.bin
 src/kpatch/1300.bin
+src/kpatch/1302.bin
+src/kpatch/1350.bin
+src/kpatch/1352.bin
 src/goldhen.bin
 src/hen.bin
 # payload.bin is DELIBERATELY NOT listed. It is optional (the "Custom" option
