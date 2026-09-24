@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en" manifest="cache.manifest">
+<head>
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+     <title>PS4 SlopKit Exploit</title>
+     <script>
+        (function () {
+          try {
+            var legacy = localStorage.getItem('legacyMode') === 'true';
+            if (legacy) document.documentElement.classList.add('legacy');
+            if (localStorage.getItem('bigConsole') === 'true') {
+              document.documentElement.classList.add('big-console');
+            }
+          } catch (e) { }
+        })();
+     </script>
+     <style>
+        html:not(.ready) { visibility: hidden; }
+        html.legacy .header h1 { display: none !important; }
+        html.legacy .image-wrapper { display: none !important; }
+        html.legacy .status-bar { display: none !important; }
+        html.legacy .credits { display: none !important; }
+        html.legacy .settings-btn { display: none !important; }
+        html.legacy { background: #ffffff; }
+        html.legacy .radio-option input[type="radio"],
+        html.legacy .settings-option input[type="checkbox"],
+        html.legacy .auto-jb input[type="checkbox"],
+        html.legacy .legacy-toggle input[type="checkbox"] {
+          -webkit-appearance: auto !important;
+          appearance: auto !important;
+          background: initial !important;
+          border: initial !important;
+          border-radius: initial !important;
+          box-shadow: none !important;
+        }
+        html.legacy .radio-option input[type="radio"]:checked,
+        html.legacy .settings-option input[type="checkbox"]:checked,
+        html.legacy .auto-jb input[type="checkbox"]:checked {
+          background: initial !important;
+          box-shadow: none !important;
+        }
+        html.legacy .settings-option input[type="checkbox"]:checked::after,
+        html.legacy .auto-jb input[type="checkbox"]:checked::after {
+          content: none !important;
+        }
+        html.legacy .payload-item.selected { color: #000 !important; font-weight: bold; }
+        html.legacy .console .placeholder { display: none; }
+        html.legacy .fw-badge.placeholder-text { visibility: hidden; }
+        html.legacy body {
+          display: block; background: #fff; color: #000; font-family: serif;
+          margin: 0; padding: 8px; text-align: left;
+        }
+        html.legacy .console {
+          background: transparent; border: none; border-radius: 0;
+          height: auto; min-height: 0; max-height: none; flex: none;
+          padding: 0; margin: 6px 0;
+          font-family: monospace; font-size: 12px; color: #000;
+          white-space: pre; word-break: normal; overflow-x: auto;
+        }
+     </style>
+     <link rel="stylesheet" href="includes/style.css"
+           onload="document.documentElement.classList.add('ready')"
+           onerror="document.documentElement.classList.add('ready')">
+     <script>
+        (function () {
+          function reveal() {
+            if (document.documentElement)
+              document.documentElement.classList.add('ready');
+          }
+          document.addEventListener('DOMContentLoaded', reveal, { once: true });
+          setTimeout(reveal, 400);
+        })();
+     </script>
+   </head>
+   <body>
+
+  <div class="container">
+
+    <header class="header">
+      <h1>PS4 <span class="highlight">SlopKit</span> Exploit</h1>
+      <div class="fw-row">
+        <span class="fw-badge placeholder-text" id="fwDisplay">detecting...</span>
+      </div>
+    </header>
+
+    <button id="settingsBtn" class="settings-btn" type="button"
+            aria-label="Settings" aria-expanded="false" title="Settings">
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"
+           fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.2.61.75 1.02 1.4 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
+    </button>
+
+    <div id="settingsPanel" class="settings-panel" hidden>
+      <div class="settings-title">Settings</div>
+      <label class="settings-option">
+        <input type="checkbox" id="bigConsoleInput">
+        <span>Big console log (For debugging)</span>
+      </label>
+      <label class="settings-option">
+        <input type="checkbox" id="consoleWrapInput">
+        <span>Wrap long lines</span>
+      </label>
+      <label class="settings-option">
+        <input type="checkbox" id="legacyInput">
+        <span>Legacy theme (plain HTML)</span>
+      </label>
+    </div>
+
+    <label id="legacyToggle" class="legacy-toggle" hidden>
+      <input type="checkbox" id="legacyToggleInput">
+      <span>Legacy theme</span>
+    </label>
+
+    <div class="image-wrapper">
+      <img src="includes/image.jpg" alt="image" class="image">
+    </div>
+
+    <div class="controls">
+      <form id="kernel-options" class="radio-group">
+        <label class="radio-option">
+          <input type="radio" name="kernel" id="netctrl-exploit" value="netctrl">
+          <span>Netcontrol</span>
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="kernel" id="lapse-exploit" value="lapse" checked>
+          <span>Lapse</span>
+        </label>
+      </form>
+
+      <div id="payload-picker" class="payload-picker">
+        <button id="payload-toggle" class="payload-toggle" type="button"
+                aria-haspopup="listbox" aria-expanded="false">
+          <span id="payload-current">GoldHEN</span>
+          <span class="payload-caret" aria-hidden="true"></span>
+        </button>
+        <div id="payload-menu" class="payload-menu" role="listbox" hidden>
+          <button class="payload-item" type="button" role="option"
+                  data-value="goldhen.bin">GoldHEN</button>
+          <button class="payload-item" type="button" role="option"
+                  data-value="hen.bin">HEN</button>
+          <button class="payload-item" type="button" role="option"
+                  data-value="payload.bin">Custom</button>
+        </div>
+      </div>
+
+      <button id="jeilbrek" class="btn-primary" type="button">Jelbrek</button>
+
+      <div class="auto-jb">
+        <label id="autoJbLabel">Auto Jailbreak</label>
+        <input id="autoJbInput" type="checkbox">
+      </div>
+    </div>
+
+    <div id="console" class="console"><div class="placeholder">[System] Ready</div></div>
+
+    <div class="status-bar">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">Idle</span>
+    </div>
+
+    <div class="credits">Special thanks to Jordy, egycnq, TheFlow, abc and PS5 R&D group</div>
+    <div class="credits">Host created and reimplemented by Syimy</div>
+
+  </div>
+
+  <script src="src/main.js"></script>
+  <script src="includes/script.js"></script>
+
+</body>
+</html>
