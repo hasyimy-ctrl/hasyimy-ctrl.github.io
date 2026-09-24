@@ -1,4 +1,4 @@
-export const REQUIRED_KEYS = [
+﻿﻿export const REQUIRED_KEYS = [
     "wk_expm1_builtin", "wk_JSFunction_m_function",
     "wk_POP_RDI_RET", "wk_POP_RSI_RET", "wk_POP_RDX_RET", "wk_POP_RCX_RET",
     "wk_POP_RAX_RET", "wk_POP_R8_RET", "wk_POP_R9_RET", "wk_LEAVE_RET",
@@ -12,9 +12,48 @@ export const REQUIRED_KEYS = [
     "k_evf_cv", "k_sysent_661", "k_jmp_rsi",
 ];
 
+/*
+OPTIONAL_KEYS = the union of what EVERY chain may want, not what any one chain
+needs. Nothing here is enforced by the table itself; each chain's own gates
+decide.
+
+NO "payload" key. The HEN blob is a USER CHOICE, not a firmware property: the
+dropdown writes goldhen.bin / hen.bin into localStorage and module/assets.js
+resolves it. The chains call loadPayload(options.payload) and never consult the
+offset table for it.
+
+NO "k_prison0" / "k_rootvnode" KEY -- and this one is load-bearing, see
+NOTES-webkit-chain.md:184-199. Those are STATIC RVAs into the kernel image.
+They are valid for a chain running under a full libkernel build, but our chains
+run in the Internet Browser against libkernel_web.sprx, where the same RVAs do
+NOT address those structures. Everything below the double-free therefore
+derives them at runtime from the process itself instead of reading them from a
+table:
+
+    curproc   <- ioctl(pipe, FIOSETOWN, pid); f_data(+0x0) -> +0xd0 -> +0x0
+    kProc     <- walk p_list_next (+0x00) from curproc until p_pid(+0xb0)==0
+    prison0   <- kProc.p_ucred(+0x40).cr_prison(+0x30)
+    rootvnode <- kProc.p_fd(+0x48).fd_rdir(+0x10)
+
+Putting the static RVAs in this table would look correct and silently point
+the jailbreak writes at the wrong addresses on every firmware.
+
+Groups here:
+  - k_stubs / pthread: present on 11.50+ only. 10.00-11.02 rely on the runtime
+    stub SCAN (discoverStubs seeds from k_stubs when it exists, then scans
+    k_scan_stage1 when it does not).
+  - the k_idt_rsvd / k_oid_* / k_arg1_* / k_sysctl_handle_int block:
+    relapse.js ONLY -- its kern.file oracle. lapse.js and netctrl.js read none.
+*/
 export const OPTIONAL_KEYS = [
     "k_stubs", "wk_pthread_create",
-    "wk___imp_pthread_create", "k_pthread_create", "kpatch", "alias_of",
+    "wk___imp_pthread_create", "k_pthread_create", "kpatch",
+    "alias_of",
+    /* relapse.js only -- the kern.file anchor + oracle table. */
+    "k_idt_rsvd", "k_sysctl_handle_int",
+    "k_oid_kern_file", "k_oid_maxfilesperproc", "k_oid_maxprocperuid",
+    "k_oid_maxfiles",
+    "k_arg1_maxfilesperproc", "k_arg1_maxprocperuid", "k_arg1_maxfiles",
 ];
 
 export const PS4 = {
@@ -328,6 +367,130 @@ export const PS4 = {
     },
 };
 
+/*
+================================================================================
+THE 13.0x / 13.5x OVERRIDES
+================================================================================
+
+These four share their WebKit + libkernel halves with 13.00 (13.02/13.04 are the
+SAME modules; 13.50/13.52 load the 13.00 WebKit image but their own libkernel),
+so they are Object.assign overrides of PS4["13.00"] in the same style as the
+10.01 / 10.70 / 11.52 / 12.02 / 12.52 aliases above -- the identical fields are
+INHERITED, not re-typed. Copy-pasting the 29 shared keys into each entry is how
+the old offsets_extended.js drifted from this file in the first place.
+
+Override ONLY the kernel half. Those RVAs are MEASURED per build (kdump5 +
+tools/kderive.py against kernel_1302/1350/1352.elf), NOT derived, so they are
+not interchangeable between builds the way the WebKit RVAs are:
+
+  13.02  kernel_1302.elf -- .text moved from 13.00 (idt_rsvd 0x1c1d50)
+  13.04  SAME KERNEL as 13.02 -- identical values on purpose, hence the
+         deliberate duplicate; there is nothing to inherit from 13.02 because
+         the two are siblings, and pointing 13.04 at 13.02 would make a future
+         13.02 edit silently retarget 13.04
+  13.50  kernel_1350.elf -- own build (idt_rsvd 0x1c1d60, __error 0x1a0f0)
+  13.52  kernel_1352.elf -- own build, shares .data with 13.50 but not .text
+         (idt_rsvd 0x1c1e00, jmp_rsi 0x4d6d0)
+
+The k_stubs blocks below ARE identical across all four and are inherited where
+they match 13.00; only k__error / k_pthread_create are re-stated on 13.50/13.52
+because their libkernel is not 13.00's.
+*/
+
+PS4["13.02"] = Object.assign({}, PS4["13.00"], {
+    k_idt_rsvd: 0x1c1d50,
+    k_sysctl_handle_int: 0x3fa0a0,
+    k_jmp_rsi: 0x47b31,
+    k_kl_lock: 0xe6c20,
+    k_evf_cv: 0x7849d8,
+    k_sysent: 0x1102b70,
+    k_sysent_661: 0x110a760,
+    k_oid_kern_file: 0x1a2f8a0,
+    k_oid_maxfilesperproc: 0x1a2f950,
+    k_oid_maxprocperuid: 0x1a3ba88,
+    k_oid_maxfiles: 0x1a2f9a8,
+    k_arg1_maxfilesperproc: 0x22cc47c,
+    k_arg1_maxprocperuid: 0x22cc478,
+    k_arg1_maxfiles: 0x22cc474,
+    /* ported from 1300.c, 18 sites +0x10; HW-PROVEN on 13.02 (KEXEC rc=0,
+       pass=51). */
+    kpatch: "1302.bin",
+});
+
+PS4["13.04"] = Object.assign({}, PS4["13.00"], {
+    /* SAME KERNEL as 13.02 -- every value below is identical to it on purpose.
+       See the header for why this is duplicated rather than chained. */
+    k_idt_rsvd: 0x1c1d50,
+    k_sysctl_handle_int: 0x3fa0a0,
+    k_jmp_rsi: 0x47b31,
+    k_kl_lock: 0xe6c20,
+    k_evf_cv: 0x7849d8,
+    k_sysent: 0x1102b70,
+    k_sysent_661: 0x110a760,
+    k_oid_kern_file: 0x1a2f8a0,
+    k_oid_maxfilesperproc: 0x1a2f950,
+    k_oid_maxprocperuid: 0x1a3ba88,
+    k_oid_maxfiles: 0x1a2f9a8,
+    k_arg1_maxfilesperproc: 0x22cc47c,
+    k_arg1_maxprocperuid: 0x22cc478,
+    k_arg1_maxfiles: 0x22cc474,
+    /* reuses the one blob because the kernel is the same build. */
+    kpatch: "1302.bin",
+});
+
+PS4["13.50"] = Object.assign({}, PS4["13.00"], {
+    /* libkernel is 13.50's own, so these two differ from the 13.00 values that
+       the other fields still inherit. */
+    k__error: 0x1a0f0,
+    k_pthread_create: 0x21790,
+
+    /* KERNEL RVAs measured 2026-09-16 from kernel_1350.elf (kdump5
+       tier0->rebase->tier1, kderive 16/16, adversarially verified 16/16 GO).
+       13.50 is its own build (!= 13.52): .text moved from 13.00 by idt_rsvd
+       +0x20, sysctl_handle_int +0x450, evf_cv +0x440; jmp_rsi/kl_lock/sysent
+       carried; all .data identical. */
+    k_idt_rsvd: 0x1c1d60,
+    k_sysctl_handle_int: 0x3fa4e0,
+    k_jmp_rsi: 0x47b31,
+    k_kl_lock: 0xe6c20,
+    k_evf_cv: 0x784e18,
+    k_sysent: 0x1102b70,
+    k_sysent_661: 0x110a760,
+    k_oid_kern_file: 0x1a2f8a0,
+    k_oid_maxfilesperproc: 0x1a2f950,
+    k_oid_maxprocperuid: 0x1a3ba88,
+    k_oid_maxfiles: 0x1a2f9a8,
+    k_arg1_maxfilesperproc: 0x22cc47c,
+    k_arg1_maxprocperuid: 0x22cc478,
+    k_arg1_maxfiles: 0x22cc474,
+    /* BUILT (anchored in kernel_1350.elf); kpatch.js 10/10, both neg controls
+       refuse; UNTESTED on hw. */
+    kpatch: "1350.bin",
+});
+
+PS4["13.52"] = Object.assign({}, PS4["13.00"], {
+    k__error: 0x1a0f0,
+    k_pthread_create: 0x21790,
+
+    /* NOT the 13.50 kernel: this one is a different build. Every value differs
+       from 13.50 except the .data block, which is shared. */
+    k_idt_rsvd: 0x1c1e00,
+    k_sysctl_handle_int: 0x3fa8e0,
+    k_jmp_rsi: 0x4d6d0,
+    k_kl_lock: 0xe6c60,
+    k_evf_cv: 0x785228,
+    k_sysent: 0x1102b70,
+    k_sysent_661: 0x110a760,
+    k_oid_kern_file: 0x1a2f8a0,
+    k_oid_maxfilesperproc: 0x1a2f950,
+    k_oid_maxprocperuid: 0x1a3ba88,
+    k_oid_maxfiles: 0x1a2f9a8,
+    k_arg1_maxfilesperproc: 0x22cc47c,
+    k_arg1_maxprocperuid: 0x22cc478,
+    k_arg1_maxfiles: 0x22cc474,
+    kpatch: "1352.bin",
+});
+
 PS4["10.01"] = Object.assign({}, PS4["10.00"], {
     alias_of: "10.00",
     kpatch: "1000.bin",
@@ -357,3 +520,5 @@ PS4["12.52"] = Object.assign({}, PS4["12.50"], {
     alias_of: "12.50",
     kpatch: "1250.bin",
 });
+
+
