@@ -1,4 +1,4 @@
 # hasyimy-ctrl.github.io
 My host site
 
-PS4 SlopKit : TODO
+PS4 SlopKit : incomplete, stalled for now.
