@@ -1,4 +1,4 @@
-﻿const consoleEl = document.getElementById('console');
+﻿﻿const consoleEl = document.getElementById('console');
 const fwDisplay = document.getElementById('fwDisplay');
 const jeilbrekBtn = document.getElementById('jeilbrek');
 const checkbox = document.getElementById('autoJbInput');
@@ -264,19 +264,25 @@ window.setupUI = function() {
                                       (src/kernel_bug/lapse_bug.c) -- a double-free
                                       won by a suspend/resume race.
 
-          netctrl.js  12.50+          bnet_netcontrol.c  netcontrol
+          netctrl.js  10.00 - 13.00   bnet_netcontrol.c  netcontrol
                                       (src/kernel_bug/netctrl_bug.c) -- a
                                       netcontrol(SET/CLEAR_QUEUE) double-free.
 
-          relapse.js  13.02, 13.04, 13.50, 13.52
-                                      vfs_aio2.c  _aio_multi_wait
+          relapse.js  13.02 - 13.52   vfs_aio2.c  _aio_multi_wait
                                       (src/kernel_bug/sys_aio_multi_wait.c) -- a
                                       concurrency bug in the waiter list. A DIFFERENT
                                       bug from lapse's, not a port of it.
 
-        lapseOk / netctrlOk / relapseOk are each a property test on the firmware's
-        own offset block, never a firmware-string allow list, so a newly-measured
-        firmware gains its chain the moment its keys land in src/offset.js.
+        The ranges overlap on purpose. 10.00-12.02 has two working chains (Lapse
+        and Netcontrol); 13.02-13.52 has one (Relapse); 12.50-13.00 has Netcontrol
+        alone. The one gap is above 13.00 and below 13.02.
+
+        Each chain's gate is a property test where it can be, never a
+        firmware-string allow list, so a newly-measured firmware gains its chain
+        the moment its keys land in src/offset.js. The range bounds below are the
+        exception and are stated as explicit constants, because a bound like
+        "Lapse stops at 12.02" is a fact about the kernel build, not about a key
+        being present.
 
         NEITHER the marks NOR the ranges disable a radio. A `disabled` input
         swallows the click outright -- no change event, no handler, no explanation --
@@ -346,14 +352,17 @@ window.setupUI = function() {
                 window.logToUI('FW', 'Detected ' + key);
                 window.setStatus('Ready', 'ok');
 
-                /* Relapse's kern.file oracle needs the anchor + oid table. */
-                relapseOk = off.k_idt_rsvd !== undefined
+                /* Relapse: 13.02 - 13.52, gated on the kern.file oracle table
+                   it needs (the anchor + oid keys). */
+                relapseOk = Number.isFinite(firmwareVersion)
+                    && firmwareVersion >= 13.02 && firmwareVersion <= 13.52
+                    && off.k_idt_rsvd !== undefined
                     && off.k_oid_kern_file !== undefined
                     && off.k_oid_maxfilesperproc !== undefined;
-                /* Netcontrol carries 12.50 and above. */
+                /* Netcontrol: 10.00 - 13.00. */
                 netctrlOk = Number.isFinite(firmwareVersion)
-                    && firmwareVersion >= 12.50;
-                /* Lapse is 10.00 - 12.02. */
+                    && firmwareVersion >= 10.00 && firmwareVersion <= 13.00;
+                /* Lapse: 10.00 - 12.02. */
                 lapseOk = Number.isFinite(firmwareVersion)
                     && firmwareVersion >= 10.00 && firmwareVersion <= 12.02;
 
@@ -369,17 +378,6 @@ window.setupUI = function() {
                 markBlocked(relapseRadio, !relapseOk);
                 markBlocked(netctrlRadio, !netctrlOk);
                 markBlocked(lapseRadio, !lapseOk);
-
-                /* Default selection: whichever chain this firmware runs. */
-                const def = relapseOk ? 'relapse' : (netctrlOk ? 'netctrl'
-                    : (lapseOk ? 'lapse' : null));
-                if (def) {
-                    exploitChain = def;
-                    localStorage.setItem('exploitChain', exploitChain);
-                    if (def === 'relapse' && relapseRadio) relapseRadio.checked = true;
-                    else if (def === 'netctrl' && netctrlRadio) netctrlRadio.checked = true;
-                    else if (lapseRadio) lapseRadio.checked = true;
-                }
             }
         } else {
             [netctrlRadio, lapseRadio, relapseRadio].forEach(function(radio) {
@@ -406,19 +404,36 @@ window.setupUI = function() {
         if (!firmwareSupported)
             return fwUnsupportedReason || 'No offsets are present for this firmware.';
         if (chain === 'relapse' && !relapseOk)
-            return 'Relapse workaround on FW 10.00-13.00 is not implemented yet.';
+            return 'Relapse supports FW 13.02-13.52 only.';
         if (chain === 'lapse' && !lapseOk)
             return 'Lapse supports FW 10.00-12.02 only.';
         if (chain === 'netctrl' && !netctrlOk)
-            return 'Netcontrol supports FW 12.50 and above only.';
+            return 'Netcontrol supports FW 10.00-13.00 only.';
         return null;
     }
 
-    /* The chain this firmware should be on, in preference order. */
+    /*
+    The chain this firmware should default to.
+
+    Preference order is "the most specific chain that runs here", not a fixed
+    list, because the ranges overlap:
+
+      >= 13.02   Relapse  (and it is the ONLY one there)
+      <= 12.02   Lapse    (the older chain; Netcontrol also runs here)
+      otherwise  Netcontrol (12.50 - 13.00, where neither of the others runs)
+
+    Putting Netcontrol ahead of Lapse unconditionally would make it the default
+    on 10.00-12.02, where Lapse is the chain that range was actually built and
+    tested around. The stored preference is consulted first, so a user who has
+    deliberately picked Netcontrol on 10.00 keeps it.
+    */
     function defaultChain() {
         if (relapseOk) return 'relapse';
-        if (netctrlOk) return 'netctrl';
+        const stored = exploitChain;
+        if (stored === 'netctrl' && netctrlOk) return 'netctrl';
+        if (stored === 'lapse' && lapseOk) return 'lapse';
         if (lapseOk) return 'lapse';
+        if (netctrlOk) return 'netctrl';
         return null;
     }
 
