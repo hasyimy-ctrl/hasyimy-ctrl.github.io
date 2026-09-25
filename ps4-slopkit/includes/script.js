@@ -1,4 +1,4 @@
-const consoleEl = document.getElementById('console');
+﻿const consoleEl = document.getElementById('console');
 const fwDisplay = document.getElementById('fwDisplay');
 const jeilbrekBtn = document.getElementById('jeilbrek');
 const checkbox = document.getElementById('autoJbInput');
@@ -406,7 +406,7 @@ window.setupUI = function() {
         if (!firmwareSupported)
             return fwUnsupportedReason || 'No offsets are present for this firmware.';
         if (chain === 'relapse' && !relapseOk)
-            return 'Relapse required offsets not present on FW 10.00-13.00 yet.';
+            return 'Relapse workaround on FW 10.00-13.00 is not implemented yet.';
         if (chain === 'lapse' && !lapseOk)
             return 'Lapse supports FW 10.00-12.02 only.';
         if (chain === 'netctrl' && !netctrlOk)
